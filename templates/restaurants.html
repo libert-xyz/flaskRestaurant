@@ -7,6 +7,19 @@
   <body>
     <h1>Restaurants</h1>
     <a href="{{url_for('newRestaurant')}}">Add Restaurant</a>
+
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    
     {% for i in restaurantes %}
         <h3>{{i.name}}</h3>
         <a href="{{url_for('editRestaurant',restaurant_id=i.id)}}">Edit</a>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, request, redirect
+from flask import Flask, render_template, url_for, request, redirect, jsonify, flash
 #Database
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -43,6 +43,7 @@ def newRestaurant():
             restaurant = Restaurant(name=request.form['name'])
             session.add(restaurant)
             session.commit()
+            flash('Restaurant Added')
             return redirect(url_for('restaurants'))
         else:
             return 'Error'
@@ -57,6 +58,7 @@ def editRestaurant(restaurant_id):
             restaurant.name = request.form['name']
             session.add(restaurant)
             session.commit()
+            flash('Restaurant Edited')
             return redirect(url_for('restaurants'))
         else:
             return 'Error'
@@ -70,6 +72,7 @@ def deleteRestaurant(restaurant_id):
     if request.method == 'POST':
         session.delete(restaurant)
         session.commit()
+        flash('Restaurant Deleted')
         return redirect(url_for('restaurants'))
     else:
         return render_template('deleteRestaurant.html',restaurant=restaurant)
@@ -91,6 +94,7 @@ def newMenuItem(restaurant_id):
         newMenu = MenutItem(name=request.form['name'],description=request.form['description'],price=request.form['price'],restaurant_id=restaurant_id)
         session.add(newMenu)
         session.commit()
+        flash('Menu Added')
         return redirect(url_for('menuRestaurant',restaurant_id=restaurant_id))
     else:
         return render_template('newMenuItem.html',restaurant_id=restaurant_id)
@@ -102,10 +106,13 @@ def editMenuItem(restaurant_id,menu_id):
     if request.method == 'POST':
         if request.form['name'] != '':
             menu.name = request.form['name']
-            menu.description = request.form['description']
-            menu.price = request.form['price']
+            if request.form['description'] != '' and request.form['price'] != '':
+                menu.description = request.form['description']
+                menu.price = request.form['price']
+
             session.add(menu)
             session.commit()
+            flash('Restaurant Edited')
             return redirect(url_for('menuRestaurant',restaurant_id=restaurant_id))
 
         else:
@@ -119,11 +126,32 @@ def deleteMenuItem(restaurant_id,menu_id):
     if request.method == 'POST':
         session.delete(deleteItem)
         session.commit()
+        flash('Menu Deleted')
         return redirect(url_for('menuRestaurant',restaurant_id=restaurant_id))
     else:
         return render_template('deleteMenuItem.html',restaurant_id=restaurant_id,menu_id=menu_id,menu=deleteItem)
 
 
+#API Endpoint
+
+@app.route('/restaurants/JSON')
+def restaurantAPI():
+    restaurantes = session.query(Restaurant).all()
+    return jsonify(Restaurantes=[i.serializeRestaurant for i in restaurantes])
+
+
+@app.route('/restaurant/<int:restaurant_id>/menu/JSON')
+def restaurantMenusAPI(restaurant_id):
+    menu = session.query(MenutItem).filter_by(restaurant_id=restaurant_id).all()
+    return jsonify(RestaurantMenu=[i.serialize for i in menu])
+
+@app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/JSON')
+def restaurantMenuAPI(restaurant_id,menu_id):
+    menu = session.query(MenutItem).filter_by(id=menu_id).one()
+    return jsonify(RestaurantMenu=[menu.serialize])
+
+
 if __name__ == '__main__':
+    app.secret_key = 'secret_KEY'
     app.run(host='0.0.0.0')
     app.debug = True
